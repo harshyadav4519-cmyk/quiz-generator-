@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QuizAI – Smart Quiz Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #21212b;
+    --border: #2e2e3a;
+    --accent: #7c6aff;
+    --accent2: #4fd1c5;
+    --danger: #ff6b6b;
+    --success: #6bcb77;
+    --text: #e8e8f0;
+    --muted: #7a7a90;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── NAV ── */
+  nav {
+    width: 100%;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .nav-badge {
+    font-size: 0.75rem;
+    background: var(--accent);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    width: 100%;
+    max-width: 780px;
+    padding: 40px 20px 80px;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp .35s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SETUP SCREEN ── */
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .hero-title span { color: var(--accent); }
+  .hero-sub {
+    color: var(--muted);
+    margin-bottom: 36px;
+    font-size: 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 12px 14px;
+    outline: none;
+    transition: border .2s;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+  }
+  select option { background: var(--surface2); }
+
+  /* Toggle: Topic vs Syllabus */
+  .toggle-tabs {
+    display: flex;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 18px;
+    gap: 4px;
+  }
+  .toggle-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--muted);
+    transition: all .2s;
+    user-select: none;
+  }
+  .toggle-tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .input-panel { display: none; }
+  .input-panel.active { display: block; }
+
+  /* Difficulty pills */
+  .pill-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all .2s;
+    user-select: none;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Num questions */
+  .num-row { display: flex; gap: 12px; align-items: center; }
+  .num-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .num-btn:hover { background: var(--accent); border-color: var(--accent); }
+  #numDisplay {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    min-width: 36px;
+    text-align: center;
+  }
+
+  /* Timer toggle */
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .switch-label { font-size: 0.9rem; }
+  .switch {
+    position: relative;
+    width: 46px; height: 26px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    transition: .3s;
+  }
+  .slider:before {
+    content: "";
+    position: absolute;
+    width: 18px; height: 18px;
+    left: 3px; bottom: 3px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: .3s;
+  }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(20px); background: #fff; }
+
+  /* Generate button */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity .2s, transform .15s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── LOADING ── */
+  #loadingScreen {
+    text-align: center;
+    padding: 80px 20px;
+  }
+  .spinner {
+    width: 52px; height: 52px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .loading-sub { color: var(--muted); font-size: 0.9rem; }
+
+  /* ── QUIZ SCREEN ── */
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .quiz-meta { font-family: 'Syne', sans-serif; font-size: 0.85rem; color: var(--muted); }
+  .quiz-meta strong { color: var(--text); }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 10px;
+    transition: width .4s ease;
+  }
+
+  /* Timer */
+  .timer-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border);
+    min-width: 72px;
+    text-align: center;
+    transition: border-color .2s, color .2s;
+  }
+  .timer-badge.warning { border-color: var(--danger); color: var(--danger); }
+
+  /* Question card */
+  .q-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .q-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .options-grid { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: #7c6aff15; }
+  .option-btn .opt-label {
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  .option-btn.correct { border-color: var(--success); background: #6bcb7720; }
+  .option-btn.correct .opt-label { background: var(--success); color: #fff; }
+  .option-btn.wrong   { border-color: var(--danger);  background: #ff6b6b20; }
+  .option-btn.wrong .opt-label   { background: var(--danger);  color: #fff; }
+  .option-btn:disabled { cursor: default; }
+
+  /* Explanation */
+  .explanation {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-left: 3px solid var(--accent2);
+    border-radius: 0 10px 10px 0;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.5;
+    display: none;
+  }
+  .explanation.visible { display: block; animation: fadeUp .3s ease; }
+  .explanation strong { color: var(--accent2); }
+
+  .quiz-nav {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  .btn-next {
+    padding: 12px 28px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+    display: none;
+  }
+  .btn-next:hover { opacity: 0.85; }
+
+  /* ── RESULTS SCREEN ── */
+  .result-hero {
+    text-align: center;
+    padding: 40px 0 32px;
+  }
+  .score-ring {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    border: 6px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .score-ring svg {
+    position: absolute;
+    inset: -6px;
+    width: calc(100% + 12px);
+    height: calc(100% + 12px);
+    transform: rotate(-90deg);
+  }
+  .score-ring svg circle { fill: none; stroke-linecap: round; }
+  .score-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-denom { font-size: 0.8rem; color: var(--muted); }
+  .result-grade {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .result-sub { color: var(--muted); font-size: 0.9rem; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .stat-lbl { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* Review */
+  .review-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .review-q { font-size: 0.92rem; margin-bottom: 10px; line-height: 1.4; }
+  .review-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .tag.correct { background: #6bcb7722; color: var(--success); }
+  .tag.wrong   { background: #ff6b6b22; color: var(--danger); }
+  .tag.info    { background: #7c6aff22; color: var(--accent); }
+
+  .result-actions { display: flex; gap: 12px; margin-top: 28px; }
+  .btn-secondary {
+    flex: 1;
+    padding: 14px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: #ff6b6b15;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    color: var(--danger);
+    font-size: 0.9rem;
+    margin-top: 14px;
+    display: none;
+  }
+
+  @media (max-width: 500px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    nav { padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Quiz<span>AI</span></div>
+  <div class="nav-badge">Powered by Groq</div>
+</nav>
+
+<div class="container">
+
+  <!-- ══ SETUP SCREEN ══════════════════════════════════════════════════ -->
+  <div class="screen active" id="setupScreen">
+    <h1 class="hero-title">Generate a Quiz<br/><span>in Seconds</span></h1>
+    <p class="hero-sub">Enter a topic or paste your syllabus — Gemini does the rest.</p>
+
+    <!-- Input mode toggle -->
+    <div class="card">
+      <div class="card-title">Input Mode</div>
+      <div class="toggle-tabs">
+        <div class="toggle-tab active" id="tabTopic" onclick="switchTab('topic')">📌 Topic</div>
+        <div class="toggle-tab" id="tabSyllabus" onclick="switchTab('syllabus')">📄 Syllabus</div>
+      </div>
+      <div class="input-panel active" id="panelTopic">
+        <label>Topic</label>
+        <input type="text" id="topicInput" placeholder="e.g. Newton's Laws of Motion, Python Loops, World War II…"/>
+      </div>
+      <div class="input-panel" id="panelSyllabus">
+        <label>Paste your syllabus / notes</label>
+        <textarea id="syllabusInput" rows="5" placeholder="Paste chapter content, bullet points, or any study material here…"></textarea>
+      </div>
+    </div>
+
+    <!-- Difficulty -->
+    <div class="card">
+      <div class="card-title">Difficulty</div>
+      <div class="pill-group" id="diffGroup">
+        <div class="pill" onclick="selectDiff(this)">Easy</div>
+        <div class="pill selected" onclick="selectDiff(this)">Medium</div>
+        <div class="pill" onclick="selectDiff(this)">Hard</div>
+      </div>
+    </div>
+
+    <!-- Number of questions -->
+    <div class="card">
+      <div class="card-title">Number of Questions</div>
+      <div class="num-row">
+        <button class="num-btn" onclick="changeNum(-1)">−</button>
+        <div id="numDisplay">10</div>
+        <button class="num-btn" onclick="changeNum(1)">+</button>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="card">
+      <div class="switch-row">
+        <span class="switch-label">⏱ Timer per question</span>
+        <label class="switch">
+          <input type="checkbox" id="timerToggle" checked/>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="timerSec" style="margin-top:14px;">
+        <label>Seconds per question</label>
+        <input type="text" id="timerInput" value="30" style="width:90px;"/>
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+    <button class="btn-primary" id="generateBtn" onclick="generateQuiz()">✨ Generate Quiz</button>
+  </div>
+
+  <!-- ══ LOADING SCREEN ════════════════════════════════════════════════ -->
+  <div class="screen" id="loadingScreen">
+    <div class="spinner"></div>
+    <div class="loading-text">Generating your quiz…</div>
+    <div class="loading-sub">Gemini is crafting questions just for you</div>
+  </div>
+
+  <!-- ══ QUIZ SCREEN ═══════════════════════════════════════════════════ -->
+  <div class="screen" id="quizScreen">
+    <div class="quiz-header">
+      <div class="quiz-meta">
+        Question <strong id="qCurrent">1</strong> of <strong id="qTotal">10</strong>
+        &nbsp;·&nbsp; <strong id="qTopic">—</strong>
+      </div>
+      <div class="timer-badge" id="timerBadge" style="display:none;">30s</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar" style="width:10%"></div>
+    </div>
+
+    <div class="card">
+      <div class="q-number" id="qNum">Q1</div>
+      <div class="q-text" id="qText"></div>
+      <div class="options-grid" id="optionsGrid"></div>
+      <div class="explanation" id="explanation"></div>
+    </div>
+
+    <div class="quiz-nav">
+      <button class="btn-next" id="btnNext" onclick="nextQuestion()">Next →</button>
+    </div>
+  </div>
+
+  <!-- ══ RESULTS SCREEN ════════════════════════════════════════════════ -->
+  <div class="screen" id="resultsScreen">
+    <div class="result-hero">
+      <div class="score-ring">
+        <svg viewBox="0 0 142 142">
+          <circle cx="71" cy="71" r="62" stroke="var(--border)" stroke-width="6"/>
+          <circle cx="71" cy="71" r="62" id="scoreArc"
+            stroke="var(--accent)" stroke-width="6"
+            stroke-dasharray="389.56" stroke-dashoffset="389.56"/>
+        </svg>
+        <div class="score-num" id="finalScore">0</div>
+        <div class="score-denom" id="finalDenom">/10</div>
+      </div>
+      <div class="result-grade" id="resultGrade">—</div>
+      <div class="result-sub" id="resultSub">—</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="statCorrect" style="color:var(--success)">0</div>
+        <div class="stat-lbl">Correct</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statWrong" style="color:var(--danger)">0</div>
+        <div class="stat-lbl">Wrong</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statPct">0%</div>
+        <div class="stat-lbl">Score</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Review Answers</div>
+      <div id="reviewList"></div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-secondary" onclick="retakeQuiz()">🔄 Retake</button>
+      <button class="btn-primary" style="flex:1" onclick="newQuiz()">＋ New Quiz</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let questions = [], currentQ = 0, score = 0, userAnswers = [];
+let timerInterval = null, timeLeft = 0;
+let inputMode = 'topic';
+let difficulty = 'Medium';
+let numQuestions = 10;
+let useTimer = true;
+let timerSecs = 30;
+
+// ── Tab switch ─────────────────────────────────────────────────────────────
+function switchTab(mode) {
+  inputMode = mode;
+  document.getElementById('tabTopic').classList.toggle('active', mode === 'topic');
+  document.getElementById('tabSyllabus').classList.toggle('active', mode === 'syllabus');
+  document.getElementById('panelTopic').classList.toggle('active', mode === 'topic');
+  document.getElementById('panelSyllabus').classList.toggle('active', mode === 'syllabus');
+}
+
+// ── Difficulty ─────────────────────────────────────────────────────────────
+function selectDiff(el) {
+  document.querySelectorAll('#diffGroup .pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  difficulty = el.textContent;
+}
+
+// ── Num questions ──────────────────────────────────────────────────────────
+function changeNum(d) {
+  numQuestions = Math.min(20, Math.max(3, numQuestions + d));
+  document.getElementById('numDisplay').textContent = numQuestions;
+}
+
+// Timer toggle
+document.getElementById('timerToggle').addEventListener('change', function() {
+  useTimer = this.checked;
+  document.getElementById('timerSec').style.display = useTimer ? 'block' : 'none';
+});
+
+// ── Show screen ────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Generate Quiz ──────────────────────────────────────────────────────────
+async function generateQuiz() {
+  const topic    = document.getElementById('topicInput').value.trim();
+  const syllabus = document.getElementById('syllabusInput').value.trim();
+  const errorBox = document.getElementById('errorBox');
+  errorBox.style.display = 'none';
+
+  if (inputMode === 'topic' && !topic) {
+    showError('Please enter a topic.'); return;
+  }
+  if (inputMode === 'syllabus' && !syllabus) {
+    showError('Please paste some syllabus content.'); return;
+  }
+
+  timerSecs = parseInt(document.getElementById('timerInput').value) || 30;
+
+  document.getElementById('generateBtn').disabled = true;
+  showScreen('loadingScreen');
+
+  try {
+    const res = await fetch('/generate-quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: inputMode === 'topic' ? topic : '',
+        syllabus: inputMode === 'syllabus' ? syllabus : '',
+        difficulty,
+        num_questions: numQuestions
+      })
+    });
+    const data = await res.json();
+    if (data.error) { showSetupError(data.error); return; }
+    questions = data.questions;
+    startQuiz(topic || 'Syllabus Quiz');
+  } catch(e) {
+    showSetupError('Could not connect to the server. Is Flask running?');
+  }
+}
+
+function showError(msg) {
+  const b = document.getElementById('errorBox');
+  b.textContent = msg;
+  b.style.display = 'block';
+  document.getElementById('generateBtn').disabled = false;
+}
+
+function showSetupError(msg) {
+  showScreen('setupScreen');
+  showError(msg);
+}
+
+// ── Start Quiz ─────────────────────────────────────────────────────────────
+function startQuiz(topic) {
+  currentQ = 0; score = 0; userAnswers = [];
+  document.getElementById('qTotal').textContent  = questions.length;
+  document.getElementById('qTopic').textContent  = topic;
+  document.getElementById('finalDenom').textContent = '/' + questions.length;
+  showScreen('quizScreen');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const total = questions.length;
+
+  document.getElementById('qCurrent').textContent = currentQ + 1;
+  document.getElementById('qNum').textContent      = `Q${currentQ + 1}`;
+  document.getElementById('qText').textContent     = q.question;
+  document.getElementById('progressBar').style.width = ((currentQ + 1) / total * 100) + '%';
+  document.getElementById('explanation').classList.remove('visible');
+  document.getElementById('explanation').innerHTML = '';
+  document.getElementById('btnNext').style.display = 'none';
+
+  // Options
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    const letter = ['A','B','C','D'][i];
+    btn.innerHTML = `<span class="opt-label">${letter}</span><span>${opt.replace(/^[A-D]\)\s*/, '')}</span>`;
+    btn.onclick = () => selectAnswer(opt, btn);
+    grid.appendChild(btn);
+  });
+
+  // Timer
+  clearInterval(timerInterval);
+  if (useTimer) {
+    const badge = document.getElementById('timerBadge');
+    badge.style.display = 'block';
+    badge.classList.remove('warning');
+    timeLeft = timerSecs;
+    badge.textContent = timeLeft + 's';
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      badge.textContent = timeLeft + 's';
+      if (timeLeft <= 5) badge.classList.add('warning');
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        autoTimeout();
+      }
+    }, 1000);
+  } else {
+    document.getElementById('timerBadge').style.display = 'none';
+  }
+}
+
+function autoTimeout() {
+  userAnswers.push({ q: currentQ, selected: null, correct: false });
+  disableOptions();
+  showExplanation(questions[currentQ].answer, null);
+  document.getElementById('btnNext').style.display = 'block';
+}
+
+function selectAnswer(selected, btn) {
+  clearInterval(timerInterval);
+  const correct = questions[currentQ].answer;
+  const isCorrect = selected === correct;
+  if (isCorrect) score++;
+
+  userAnswers.push({ q: currentQ, selected, correct: isCorrect });
+
+  disableOptions();
+  // Mark buttons
+  document.querySelectorAll('#optionsGrid .option-btn').forEach(b => {
+    const optText = b.querySelector('span:last-child').textContent.trim();
+    const fullOpt = b.querySelector('.opt-label').textContent + ') ' + optText;
+    if (fullOpt === correct || b.querySelector('.opt-label').textContent + ') ' + optText === correct) {
+      // Match by raw option text
+    }
+  });
+
+  // Simpler matching: compare option raw text
+  document.querySelectorAll('#optionsGrid .option-btn').forEach(b => {
+    const idx = Array.from(b.parentNode.children).indexOf(b);
+    const opt = questions[currentQ].options[idx];
+    if (opt === correct)  b.classList.add('correct');
+    if (opt === selected && !isCorrect) b.classList.add('wrong');
+  });
+
+  showExplanation(correct, isCorrect);
+  document.getElementById('btnNext').style.display = 'block';
+}
+
+function disableOptions() {
+  document.querySelectorAll('#optionsGrid .option-btn').forEach(b => b.disabled = true);
+}
+
+function showExplanation(correct, isCorrect) {
+  const el = document.getElementById('explanation');
+  const status = isCorrect === null ? '⏰ Time up!' : (isCorrect ? '✅ Correct!' : '❌ Incorrect');
+  el.innerHTML = `<strong>${status}</strong> Correct answer: <strong>${correct}</strong><br/>${questions[currentQ].explanation || ''}`;
+  el.classList.add('visible');
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= questions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+function showResults() {
+  clearInterval(timerInterval);
+  showScreen('resultsScreen');
+
+  const total = questions.length;
+  const pct   = Math.round(score / total * 100);
+
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('statCorrect').textContent = score;
+  document.getElementById('statWrong').textContent   = total - score;
+  document.getElementById('statPct').textContent     = pct + '%';
+
+  // Grade
+  let grade, sub;
+  if (pct >= 90)      { grade = '🏆 Excellent!';     sub = 'Outstanding performance!'; }
+  else if (pct >= 75) { grade = '🎯 Great job!';     sub = 'You know your stuff.'; }
+  else if (pct >= 55) { grade = '📚 Good effort!';   sub = 'A bit more practice and you\'ll ace it.'; }
+  else                { grade = '💪 Keep going!';    sub = 'Review the material and try again.'; }
+  document.getElementById('resultGrade').textContent = grade;
+  document.getElementById('resultSub').textContent   = sub;
+
+  // Arc animation
+  const circumference = 2 * Math.PI * 62; // ~389.56
+  const offset = circumference - (pct / 100) * circumference;
+  const arc = document.getElementById('scoreArc');
+  arc.style.transition = 'stroke-dashoffset 1s ease';
+  setTimeout(() => { arc.style.strokeDashoffset = offset; }, 100);
+  arc.style.stroke = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--accent)' : 'var(--danger)';
+
+  // Review list
+  const list = document.getElementById('reviewList');
+  list.innerHTML = '';
+  questions.forEach((q, i) => {
+    const ua = userAnswers[i];
+    const div = document.createElement('div');
+    div.className = 'review-item';
+    div.innerHTML = `
+      <div class="review-q"><strong>Q${i+1}.</strong> ${q.question}</div>
+      <div class="review-tags">
+        <span class="tag ${ua?.correct ? 'correct' : 'wrong'}">${ua?.correct ? '✓ Correct' : '✗ Wrong'}</span>
+        <span class="tag info">Answer: ${q.answer}</span>
+        ${ua?.selected && !ua.correct ? `<span class="tag wrong">You: ${ua.selected}</span>` : ''}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function retakeQuiz() {
+  startQuiz(document.getElementById('qTopic').textContent);
+}
+
+function newQuiz() {
+  document.getElementById('generateBtn').disabled = false;
+  document.getElementById('errorBox').style.display = 'none';
+  showScreen('setupScreen');
+}
+</script>
+</body>
+</html>
